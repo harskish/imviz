@@ -38,6 +38,8 @@ class CMakeBuild(build_ext):
     def run(self):
         global binary_files
 
+        is_win = platform.system() == 'Windows'
+
         try:
             _ = subprocess.check_output(['cmake', '--version'])
         except OSError:
@@ -50,7 +52,8 @@ class CMakeBuild(build_ext):
         cmake_args = [
             ('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY='
                 + os.path.abspath(self.build_temp)),
-            '-DPYTHON_EXECUTABLE=' + sys.executable
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
+            '-DCMAKE_CXX_STANDARD=17',
         ]
 
         # determining build type
@@ -62,7 +65,7 @@ class CMakeBuild(build_ext):
 
         # parallelize compilation, if using make files
 
-        if not platform.system() == 'Windows':
+        if not is_win:
             cpu_count = multiprocessing.cpu_count()
             self.build_args += ['--', '-j{}'.format(cpu_count)]
 
@@ -76,14 +79,17 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        # Windows dependencies
+        # Dependencies
 
-        if platform.system() == 'Windows':            
-            vcpkg_root = Path(__file__).parent / 'extern' / 'vcpkg'
-            vcpkg_bin = vcpkg_root / 'vcpkg.exe'
-            assert vcpkg_bin.is_file(), 'vcpkg not available, please run "./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics"'
-            os.system(f'{vcpkg_bin} install glew glfw3 --triplet x64-windows')
-            cmake_args.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg_root}\\scripts\\buildsystems\\vcpkg.cmake')
+        vcpkg_root = Path(__file__).parent / 'extern' / 'vcpkg'
+        vcpkg_bin = vcpkg_root / ('vcpkg.exe' if is_win else 'vcpkg')
+        assert vcpkg_bin.is_file(), 'vcpkg not available, please run "./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics"'
+        triplets = {
+            'Windows': 'x64-windows',
+            'Darwin': 'arm64-osx',
+        }
+        os.system(f'{vcpkg_bin} install glew glfw3 --triplet {triplets[platform.system()]}')
+        cmake_args.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg_root}\\scripts\\buildsystems\\vcpkg.cmake')
 
         # call cmake to configure and build
 

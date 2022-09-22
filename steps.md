@@ -7,6 +7,5 @@
 * install miniconda
 * `conda env create --force --file environment.yml`
 * `conda activate imviz_build`
-* Windows:
-  - Run in project root: `./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics`
+* `./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics`
 * `python setup.py bdist_wheel`

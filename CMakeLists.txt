@@ -148,6 +148,19 @@ IF (WIN32)
                             pybind11::module
                             pybind11::embed
                             glfw)
+ELSEIF(APPLE)
+    target_compile_options(${PY_TARGET_NAME} PUBLIC
+                            -DIMGUI_USER_CONFIG="im_user_config.h"
+                            -g
+                            -O3
+                            -std=c++17)
+
+    target_link_libraries(${PY_TARGET_NAME} PUBLIC
+                            ${OPENGL_LIBRARIES}
+                            ${GLEW_LIBRARIES}
+                            pybind11::module
+                            pybind11::embed
+                            glfw)
 ELSE()
     target_compile_options(${PY_TARGET_NAME} PUBLIC
                             -DIMGUI_USER_CONFIG="im_user_config.h"
