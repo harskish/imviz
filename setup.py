@@ -51,7 +51,7 @@ class CMakeBuild(build_ext):
 
         # parallelize compilation, if using make files
 
-        if not platform.system() == "Windows":
+        if not platform.system() == 'Windows':
             cpu_count = multiprocessing.cpu_count()
             self.build_args += ['--', '-j{}'.format(cpu_count)]
 
@@ -64,6 +64,15 @@ class CMakeBuild(build_ext):
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
+
+        # Windows dependencies
+
+        if platform.system() == 'Windows':            
+            vcpkg_root = Path(__file__).parent / 'extern' / 'vcpkg'
+            vcpkg_bin = vcpkg_root / 'vcpkg.exe'
+            assert vcpkg_bin.is_file(), 'vcpkg not available, please run "./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics"'
+            os.system(f'{vcpkg_bin} install glew glfw3 --triplet x64-windows')
+            cmake_args.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg_root}\\scripts\\buildsystems\\vcpkg.cmake')
 
         # call cmake to configure and build
 
@@ -82,12 +91,16 @@ class CMakeBuild(build_ext):
         for ext in self.extensions:
 
             build_temp = Path(self.build_temp).resolve()
+            if platform.system() == 'Windows':
+                build_temp = build_temp / 'Release'
+
             dest_path = Path(self.get_ext_fullpath(ext.name)).resolve()
             source_path = build_temp / self.get_ext_filename(ext.name)
 
             dest_directory = dest_path.parents[0]
             dest_directory.mkdir(parents=True, exist_ok=True)
 
+            print('Copying', source_path, '->', dest_path)
             self.copy_file(source_path, dest_path)
 
 

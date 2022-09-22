@@ -1,0 +1,9 @@
+name: imviz_build
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - conda-forge::cmake=3.24
+
+# conda env create --force --file environment.yml

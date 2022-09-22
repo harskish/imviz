@@ -25,7 +25,7 @@
  */
 void checkAssertion(bool expr, const char* exprStr) {
 
-    if (not expr) { 
+    if (!expr) { 
         throw std::runtime_error(exprStr);
     }
 }

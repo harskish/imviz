@@ -17,7 +17,7 @@ endif()
 
 # ---[ Check for GLEW (mandatory) ]---
 
-find_package(GLEW QUIET)
+find_package(GLEW)
 if(GLEW_FOUND)
     message(STATUS "Found GLEW: " ${GLEW_LIBRARIES})
     message(STATUS "            " ${GLEW_INCLUDE_DIR})
@@ -27,7 +27,7 @@ endif()
 
 # ---[ Check for GLFW3 (mandatory) ]---
 
-find_package(glfw3 QUIET)
+find_package(glfw3)
 if(glfw3_FOUND)
     message(STATUS "Found GLFW3")
 else(glfw3_FOUND)
@@ -127,29 +127,46 @@ set(HEADER_FILES
 
 pybind11_add_module(${PY_TARGET_NAME} MODULE ${SOURCE_FILES})
 
-target_link_libraries(${PY_TARGET_NAME} PUBLIC
-                      ${OPENGL_LIBRARIES}
-                      ${GLEW_LIBRARIES}
-                      stdc++fs
-                      pybind11::module
-                      pybind11::embed
-                      glfw)
-
 target_include_directories(${PY_TARGET_NAME} SYSTEM PUBLIC
                            extern/imgui/
                            ${implot_SOURCE_DIR})
 
 target_include_directories(${PY_TARGET_NAME} PUBLIC src/)
 
-target_compile_options(${PY_TARGET_NAME} PUBLIC
-                        -DIMGUI_USER_CONFIG="im_user_config.h"
-                        -g
-                        -O3
-                        -Wall
-                        -Wextra
-                        -Wpedantic
-                        -Wunreachable-code
-                        -std=c++17)
+IF (WIN32)
+    target_compile_options(${PY_TARGET_NAME} PUBLIC
+                            -DIMGUI_USER_CONFIG="im_user_config.h"
+                            -Zi   # -g
+                            -O2   # msvc has no -O3
+                            # -Wall
+                            -std:c++17)  # note colon!
+    
+    target_link_libraries(${PY_TARGET_NAME} PUBLIC
+                            ${OPENGL_LIBRARIES}
+                            ${GLEW_LIBRARIES}
+                            # stdc++fs  # not needed with msvc
+                            pybind11::module
+                            pybind11::embed
+                            glfw)
+ELSE()
+    target_compile_options(${PY_TARGET_NAME} PUBLIC
+                            -DIMGUI_USER_CONFIG="im_user_config.h"
+                            -g
+                            -O3
+                            -Wall
+                            -Wextra
+                            -Wpedantic
+                            -Wunreachable-code
+                            -std=c++17)
+    
+    target_link_libraries(${PY_TARGET_NAME} PUBLIC
+                            ${OPENGL_LIBRARIES}
+                            ${GLEW_LIBRARIES}
+                            stdc++fs
+                            pybind11::module
+                            pybind11::embed
+                            glfw)
+ENDIF()
 
 # Exports compile commands to .json file for vim YouCompleteMe support.
 

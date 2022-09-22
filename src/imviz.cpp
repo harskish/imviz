@@ -14,16 +14,21 @@
 
 ImViz::ImViz () {
 
+    std::cout << "Initializing GLFW" << std::endl;
     if (!glfwInit()) {
         std::cout << "Could not initialize GLFW!" << std::endl;
         std::exit(-1);
     }
 
+    std::cout << "Setting window hints" << std::endl;
     glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
 
+    std::cout << "Calling glfwCreateWindow" << std::endl;
     window = glfwCreateWindow(
             800,
             600,
@@ -31,10 +36,12 @@ ImViz::ImViz () {
             nullptr,
             nullptr);
 
+    std::cout << "Calling glfwMakeContextCurrent" << std::endl;
     glfwMakeContextCurrent(window);
 
     glewExperimental = true;
 
+    std::cout << "Initializing glew" << std::endl;
     if (GLEW_OK != glewInit()) {
         std::cout << "GL Extension Wrangler initialization failed!"
                   << std::endl;
