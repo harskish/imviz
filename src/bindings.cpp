@@ -35,11 +35,11 @@ namespace py = pybind11;
 ImViz viz;
 
 PYBIND11_MODULE(cppimviz, m) {
-
     /**
      * Input module bindings
      */
 
+    viz.init();
     input::loadPythonBindings(m);
 
     loadImguiPythonBindings(m, viz);
