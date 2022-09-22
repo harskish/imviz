@@ -8,6 +8,7 @@ from pathlib import Path
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install import install
 
 # Setuptools calls cmake, which takes care of further
 # C++ dependency resolution and the extension build.
@@ -17,15 +18,25 @@ from setuptools.command.build_ext import build_ext
 # https://www.benjack.io/2018/02/02/python-cpp-revisited.html
 # Thanks a lot, very helpful :)
 
+binary_files: list[Path] = []
+
+class Install(install):
+    def run(self):
+        # Add binary files to wheel
+        os.makedirs(self.root, exist_ok=True)
+        for f in binary_files:
+            self.copy_file(f, Path(self.root) / f.name)
+        
+        # Continue as normal
+        super().run()
 
 class CMakeExtension(Extension):
     def __init__(self, name):
         Extension.__init__(self, name, sources=[])
 
-
 class CMakeBuild(build_ext):
-
     def run(self):
+        global binary_files
 
         try:
             _ = subprocess.check_output(['cmake', '--version'])
@@ -86,31 +97,20 @@ class CMakeBuild(build_ext):
 
         subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
-        # move from temp. build dir to final position
-        #self.copy_extensions_to_source()
-
+        # Detect binary files to include in wheel
         for ext in self.extensions:
-
             build_temp = Path(self.build_temp).resolve()
             if platform.system() == 'Windows':
                 build_temp = build_temp / 'Release'
 
             suff = Path(self.get_ext_filename(ext.name)).suffix
-            #fmts = set([suff, '.dll', '.pyd'])
-            fmts = set([suff])
-            targets = [p for p in build_temp.glob('*') if p.suffix in fmts]
-
-            # Place next to __init__.py
-            for p_in in targets:
-                p_out = Path(__file__).parent / p_in.name  # / 'imviz' / p_in.name
-                self.copy_file(p_in, p_out)
-
+            fmts = set([suff, '.dll', '.pyd'])
+            binary_files += [p for p in build_temp.glob('*') if p.suffix in fmts]
 
 with open("README.md", "r", encoding="utf-8") as fh:
     readme = fh.read()
 
-# Bundle .dlls on Windows
-#package_data = {'..': ['*.dll']} if platform.system() == 'Windows' else {}
+#package_data = {'../..': ['*.dll', '*.pyd']}
 
 setup(name="imviz",
       version="0.1.22",
@@ -125,12 +125,8 @@ setup(name="imviz",
       python_requires=">=3.6",
       packages=find_packages(),
       ext_modules=[CMakeExtension("cppimviz")],
-      cmdclass=dict(build_ext=CMakeBuild),
+      cmdclass=dict(build_ext=CMakeBuild, install=Install),
       include_package_data=True,
-      #package_data=package_data,
-      #data_files=[
-      #  ('.', [str(p) for p in Path('.').parent.glob('*.dll')])  # if present, include dlls in whl root
-      #], 
       install_requires=[
             "numpy", "zarr>=2.11.3", "Pillow>=9.0.1"
           ]
