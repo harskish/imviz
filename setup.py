@@ -87,6 +87,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
         # move from temp. build dir to final position
+        #self.copy_extensions_to_source()
 
         for ext in self.extensions:
 
@@ -94,19 +95,22 @@ class CMakeBuild(build_ext):
             if platform.system() == 'Windows':
                 build_temp = build_temp / 'Release'
 
-            dest_path = Path(self.get_ext_fullpath(ext.name)).resolve()
-            source_path = build_temp / self.get_ext_filename(ext.name)
+            suff = Path(self.get_ext_filename(ext.name)).suffix
+            #fmts = set([suff, '.dll', '.pyd'])
+            fmts = set([suff])
+            targets = [p for p in build_temp.glob('*') if p.suffix in fmts]
 
-            dest_directory = dest_path.parents[0]
-            dest_directory.mkdir(parents=True, exist_ok=True)
-
-            print('Copying', source_path, '->', dest_path)
-            self.copy_file(source_path, dest_path)
+            # Place next to __init__.py
+            for p_in in targets:
+                p_out = Path(__file__).parent / p_in.name  # / 'imviz' / p_in.name
+                self.copy_file(p_in, p_out)
 
 
 with open("README.md", "r", encoding="utf-8") as fh:
     readme = fh.read()
 
+# Bundle .dlls on Windows
+#package_data = {'..': ['*.dll']} if platform.system() == 'Windows' else {}
 
 setup(name="imviz",
       version="0.1.22",
@@ -123,6 +127,10 @@ setup(name="imviz",
       ext_modules=[CMakeExtension("cppimviz")],
       cmdclass=dict(build_ext=CMakeBuild),
       include_package_data=True,
+      #package_data=package_data,
+      #data_files=[
+      #  ('.', [str(p) for p in Path('.').parent.glob('*.dll')])  # if present, include dlls in whl root
+      #], 
       install_requires=[
             "numpy", "zarr>=2.11.3", "Pillow>=9.0.1"
           ]
