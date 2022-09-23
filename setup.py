@@ -5,6 +5,7 @@ import subprocess
 import multiprocessing
 
 from pathlib import Path
+from typing import List
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -18,14 +19,19 @@ from setuptools.command.install import install
 # https://www.benjack.io/2018/02/02/python-cpp-revisited.html
 # Thanks a lot, very helpful :)
 
-binary_files: list[Path] = []
+binary_files: List[Path] = []
 
+# Only run on bdist_wheel (also sdist?)
 class Install(install):
     def run(self):
-        # Add binary files to wheel
-        os.makedirs(self.root, exist_ok=True)
-        for f in binary_files:
-            self.copy_file(f, Path(self.root) / f.name)
+        if self.root:
+            # setup.py bdist_wheel
+            os.makedirs(self.root, exist_ok=True)
+            for f in binary_files:
+                self.copy_file(f, Path(self.root) / f.name)
+        else:
+            # setup.py install
+            pass
         
         # Continue as normal
         super().run()
@@ -103,6 +109,9 @@ class CMakeBuild(build_ext):
 
         subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
+        # Are we installing or building wheel?
+        is_wheel = 'bdist_wheel' in sys.argv
+
         # Detect binary files to include in wheel
         for ext in self.extensions:
             build_temp = Path(self.build_temp).resolve()
@@ -110,30 +119,32 @@ class CMakeBuild(build_ext):
                 build_temp = build_temp / 'Release'
 
             suff = Path(self.get_ext_filename(ext.name)).suffix
-            fmts = set([suff, '.dll', '.pyd'])
-            binary_files += [p for p in build_temp.glob('*') if p.suffix in fmts]
+            fmts = set([suff, '.dll', '.pyd', '.so'])
+            matches = [p for p in build_temp.glob('*') if p.suffix in fmts]
+            dest_dir = Path(self.get_ext_fullpath(ext.name)).resolve().parent
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    readme = fh.read()
+            for m in matches:
+                binary_files.append(m)
+                if not is_wheel:
+                    self.copy_file(m, dest_dir / m.name) # tmp => lib?
 
-#package_data = {'../..': ['*.dll', '*.pyd']}
 
 setup(name="imviz",
-      version="0.1.22",
-      description="Pythonic bindings for imgui/implot",
-      url="https://github.com/joruof/imviz",
-      author="Jona Ruof",
-      author_email="jona.ruof@uni-ulm.de",
-      license="MIT",
-      zip_safe=False,
-      long_description=readme,
-      long_description_content_type="text/markdown",
-      python_requires=">=3.6",
-      packages=find_packages(),
-      ext_modules=[CMakeExtension("cppimviz")],
-      cmdclass=dict(build_ext=CMakeBuild, install=Install),
-      include_package_data=True,
-      install_requires=[
-            "numpy", "zarr>=2.11.3", "Pillow>=9.0.1"
-          ]
-      )
+    version="0.1.22",
+    description="Pythonic bindings for imgui/implot",
+    url="https://github.com/joruof/imviz",
+    author="Jona Ruof",
+    author_email="jona.ruof@uni-ulm.de",
+    license="MIT",
+    zip_safe=False,
+    long_description=Path('README.md').read_text('utf-8'),
+    long_description_content_type="text/markdown",
+    python_requires=">=3.6",
+    packages=find_packages(),
+    ext_modules=[CMakeExtension("cppimviz")],
+    cmdclass=dict(build_ext=CMakeBuild, install=Install),
+    include_package_data=True,
+    install_requires=[
+        "numpy", "zarr>=2.11.3", "Pillow>=9.0.1"
+    ]
+)
