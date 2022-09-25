@@ -3,6 +3,8 @@ import sys
 import inspect
 import datetime
 import traceback
+import platform
+from pydoc import locate
 
 import imviz as viz
 
@@ -17,14 +19,19 @@ def launch(cls, func_name):
     os.environ["PYTHONPATH"] = ":".join(
             sys.path + [os.path.dirname(file_path)])
 
-    os.execlpe("python3",
-               "python3",
-               "-m",
-               "imviz.dev_main",
-               cls_name,
-               func_name,
-               *sys.argv[1:],
-               os.environ)
+    if platform.system() == 'Windows':
+        # execlpe has different semantics on Windows
+        cls = locate(cls_name)
+        loop(cls, func_name)
+    else:
+        os.execlpe(sys.executable,
+                "python3",
+                "-m",
+                "imviz.dev_main",
+                cls_name,
+                func_name,
+                *sys.argv[1:],
+                os.environ)
 
 
 def try_load_source(path):
