@@ -85,18 +85,6 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        # Dependencies
-
-        vcpkg_root = Path(__file__).parent / 'extern' / 'vcpkg'
-        vcpkg_bin = vcpkg_root / ('vcpkg.exe' if is_win else 'vcpkg')
-        assert vcpkg_bin.is_file(), 'vcpkg not available, please run "./extern/vcpkg/bootstrap-vcpkg.sh -disableMetrics"'
-        triplets = {
-            'Windows': 'x64-windows',
-            'Darwin': 'arm64-osx',
-        }
-        os.system(f'{vcpkg_bin} install glew glfw3 --triplet {triplets[platform.system()]}')
-        cmake_args.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg_root}\\scripts\\buildsystems\\vcpkg.cmake')
-
         # call cmake to configure and build
 
         cmake_dir = os.path.abspath(os.path.dirname(__file__))
