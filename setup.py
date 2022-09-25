@@ -81,7 +81,7 @@ class CMakeBuild(build_ext):
         env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
                                 env.get('CXXFLAGS', ''),
                                 self.distribution.get_version())
-
+        
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
@@ -148,3 +148,9 @@ setup(name="imviz",
         "numpy", "zarr>=2.11.3", "Pillow>=9.0.1"
     ]
 )
+
+if platform.system() == 'Darwin' and 'bdist_wheel' in sys.argv:
+    import delocate # pip install delocate
+    for whl in Path('dist').glob('*.whl'):
+        print('Delocating', whl)
+        delocate.delocate_wheel(whl) # overrides old

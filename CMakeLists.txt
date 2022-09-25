@@ -73,7 +73,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     pybind
     GIT_REPOSITORY "https://github.com/pybind/pybind11"
-    GIT_TAG "59a2ac2745d8a57ac94c6accced73620d59fb844"
+    GIT_TAG "aa304c9c7d725ffb9d10af08a3b34cb372307020" # v2.10.0
 )
 
 message(STATUS "Loading implot ...")
@@ -159,7 +159,7 @@ ELSEIF(APPLE)
                             ${OPENGL_LIBRARIES}
                             ${GLEW_LIBRARIES}
                             pybind11::module
-                            pybind11::embed
+                            #pybind11::embed  # issues with conda + ARM (Apple M1), see https://github.com/pybind/pybind11/issues/3081
                             glfw)
 ELSE()
     target_compile_options(${PY_TARGET_NAME} PUBLIC
