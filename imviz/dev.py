@@ -3,6 +3,8 @@ import sys
 import inspect
 import datetime
 import traceback
+import platform
+from pydoc import locate
 
 import imviz as viz
 
@@ -17,7 +19,13 @@ def launch(cls, func_name):
     os.environ["PYTHONPATH"] = ":".join(
             sys.path + [os.path.dirname(file_path)])
 
-    os.execlpe("python3",
+    if platform.system() == 'Windows':
+        # __main__ module can be replaced on Windows
+        # (and using execlpe also results in crash)
+        cls = locate(cls_name) # TODO: is this cls different from the one above?
+        loop(cls, func_name)
+    else:
+        os.execlpe(sys.executable,
                "python3",
                "-m",
                "imviz.dev_main",
